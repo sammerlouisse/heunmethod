@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heun's Method · Improved Euler</title>
+    <!-- Tailwind CSS + Lucide + MathJax + Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ORIGINAL COLOR DESIGN from the reference code — clean, academic, soft gray/blue tones */
+        body {
+            background: #f8fafc;
+            font-family: 'Crimson Pro', Georgia, serif;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1.2rem;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease;
+            padding: 1.8rem 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid #eef2ff;
+        }
+        .card:hover {
+            box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e293b, #2d3a5e);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.01em;
+            font-family: 'Crimson Pro', serif;
+        }
+        .header p {
+            font-size: 1.2rem;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+            display: inline-block;
+            padding-bottom: 0.2rem;
+        }
+        h2 {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 1.2rem;
+            font-family: 'Crimson Pro', serif;
+        }
+        h2 i {
+            color: #3b82f6;
+            width: 1.6rem;
+            height: 1.6rem;
+        }
+        h3 {
+            font-weight: 600;
+            font-size: 1.35rem;
+            margin-top: 1.2rem;
+            margin-bottom: 0.6rem;
+            color: #1e293b;
+            font-family: 'Crimson Pro', serif;
+        }
+        .formula {
+            background: #f1f5f9;
+            padding: 0.9rem 1rem;
+            border-radius: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+            text-align: center;
+            font-size: 1.05rem;
+            border-left: 4px solid #3b82f6;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .result-box {
+            background: #eef2ff;
+            border-radius: 1rem;
+            padding: 1rem 1.2rem;
+            margin-top: 1.2rem;
+            border: 1px solid #cbd5e1;
+            font-weight: 600;
+            font-size: 1.15rem;
+            text-align: center;
+            color: #075985;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .example-buttons {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            margin: 1.5rem 0 0.5rem;
+        }
+        .example-btn {
+            background: white;
+            border: 2px solid #cbd5e1;
+            padding: 0.7rem 1.6rem;
+            border-radius: 3rem;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            color: #1e293b;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .example-btn:hover {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -8px rgba(59,130,246,0.4);
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(100deg, #0f172a, #1e293b);
+            padding: 0.85rem 2rem;
+            border-radius: 3rem;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+            transition: all 0.25s;
+            box-shadow: 0 8px 16px -6px rgba(0,0,0,0.15);
+            font-family: 'JetBrains Mono', monospace;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background: linear-gradient(100deg, #1e293b, #2d3a5e);
+            transform: scale(1.02);
+            box-shadow: 0 14px 24px -10px rgba(0,0,0,0.2);
+        }
+        .center {
+            text-align: center;
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .hidden {
+            display: none;
+        }
+        hr {
+            margin: 1.2rem 0;
+            border-color: #e2e8f0;
+        }
+        .step-detail {
+            background: #fafcff;
+            border-radius: 0.8rem;
+            padding: 0.2rem 0;
+        }
+        p, li {
+            color: #334155;
+            line-height: 1.5;
+        }
+        .text-muted {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        .insight-box {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 0.8rem 1rem;
+            border-radius: 0.8rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="header">
+        <h1>Heun's Method</h1>
+        <p>Improved Euler Method · Predictor-Corrector</p>
+    </header>
+
+    <!-- SHORT DISCUSSION (original style) -->
+    <section class="card">
+        <h2>
+            <i data-lucide="book-open"></i>
+            Short Discussion
+        </h2>
+        <p>
+            Heun’s Method is an improved version of Euler’s Method
+            used to solve ordinary differential equations numerically.
+            Instead of using only one slope, it averages two slopes
+            to obtain a more accurate approximation.
+        </p>
+        <br>
+        <p>Given:</p>
+        <div class="formula">
+            \[
+            \frac{dy}{dx}=f(x,y), \quad y(x_0)=y_0
+            \]
+        </div>
+        <p>Predictor Formula:</p>
+        <div class="formula">
+            \[
+            \tilde y_{i+1}=y_i+h f(x_i,y_i)
+            \]
+        </div>
+        <p>Corrector Formula:</p>
+        <div class="formula">
+            \[
+            y_{i+1}=y_i+\frac{h}{2}
+            [f(x_i,y_i)+f(x_{i+1},\tilde y_{i+1})]
+            \]
+        </div>
+        <p class="text-muted mt-2">✨ The method reduces local truncation error and provides better stability than standard Euler.</p>
+    </section>
+
+    <!-- EXAMPLE BUTTONS (boxed & modern) -->
+    <section class="card">
+        <h2>
+            <i data-lucide="layers"></i>
+            Worked Examples
+        </h2>
+        <div class="example-buttons">
+            <button class="example-btn" onclick="showExample(1)">
+                📘 Example 1 : dy/dx = x + y
+            </button>
+            <button class="example-btn" onclick="showExample(2)">
+                📙 Example 2 : dy/dx = -2xy
+            </button>
+        </div>
+    </section>
+
+    <!-- EXAMPLE 1 – COMPLETE STEP-BY-STEP SOLUTION -->
+    <section id="example1" class="card example-content hidden">
+        <h2>
+            <i data-lucide="pen-tool"></i>
+            Example 1 · Step-by-Step Solution
+        </h2>
+        <div class="bg-slate-50 p-3 rounded-lg mb-3" style="background:#f8fafc;">
+            <p class="font-medium">Solve using Heun's method:</p>
+            <div class="formula !bg-white">
+                \[
+                \frac{dy}{dx}=x+y, \quad y(0)=1, \quad h=0.1
+                \]
+            </div>
+            <p class="text-sm text-slate-600">Goal: approximate \(y(0.1)\) with one complete Heun iteration.</p>
+        </div>
+
+        <div class="step-detail">
+            <h3>📌 Step 1 — Identify function & initial data</h3>
+            <p>\(f(x,y) = x + y\),  \(x_0 = 0\), \(y_0 = 1\), step size \(h = 0.1\). Then \(x_1 = x_0 + h = 0.1\).</p>
+        </div>
+
+        <div class="step-detail">
+            <h3>📌 Step 2 — Compute first slope (at start point)</h3>
+            <div class="formula">
+                \[
+                f(x_0, y_0) = f(0,1) = 0 + 1 = 1
+                \]
+            </div>
+        </div>
+
+        <div class="step-detail">
+            <h3>📌 Step 3 — Predictor (Euler forward estimate)</h3>
+            <p>\(\tilde y_{1} = y_0 + h \cdot f(x_0, y_0)\)</p>
+            <div class="formula">
+                \[
+                \tilde y_{1} = 1 + 0.1 \times (1) = 1 + 0.1 = 1.1
+                \]
+            </div>
+            <p class="text-muted">Predicted value: \(\tilde y_1 = 1.1\) at \(x_1 = 0.1\).</p>
+        </div>
+
+        <div class="step-detail">
+            <h3>📌 Step 4 — Second slope (using predicted endpoint)</h3>
+            <p>Evaluate \(f\) at \((x_1, \tilde y_1) = (0.1,\; 1.1)\):</p>
+            <div class="formula">
+                \[
+                f(0.1, 1.1) = 0.1 + 1.1 = 1.2
+                \]
+            </div>
+        </div>
+
+        <div class="step-detail">
+            <h3>📌 Step 5 — Corrector (average of slopes)</h3>
+            <p>Heun's corrector formula:</p>
+            <div class="formula">
+                \[
+                y_{1} = y_0 + \frac{h}{2}\big[ f(x_0, y_0) + f(x_1, \tilde y_1) \big]
+                \]
+            </div>
+            <p>Substitute values:</p>
+            <div class="formula">
+                \[
+                y_{1} = 1 + \frac{0.1}{2} \big[ 1 + 1.2 \big]
+                = 1 + 0.05 \times (2.2)
+                = 1 + 0.11
+                = 1.11
+                \]
+            </div>
+        </div>
+
+        <div class="result-box">
+            🎯 Final Approximation: 
+            \[
+            y(0.1) \approx 1.11
+            \]
+            <p class="text-xs mt-1 text-slate-500">Exact solution: \(y(x)=2e^{x}-x-1\) ⇒ \(y(0.1)\approx 1.11034\), error ≈ 0.00034.</p>
+        </div>
+        <div class="insight-box">
+            ✅ <strong>Insight:</strong> The predictor gave 1.1, and the corrector refined the value to 1.11. Averaging slopes captures curvature better, yielding high accuracy even with a single step.
+        </div>
+    </section>
+
+    <!-- EXAMPLE 2 – COMPLETE STEP-BY-STEP SOLUTION -->
+    <section id="example2" class="card example-content hidden">
+        <h2>
+            <i data-lucide="pen-tool"></i>
+            Example 2 · Detailed Steps
+        </h2>
+        <div class="bg-slate-50 p-3 rounded-lg mb-3" style="background:#f8fafc;">
+            <p class="font-medium">Apply Heun's method to the ODE:</p>
+            <div class="formula !bg-white">
+                \[
+                \frac{dy}{dx} = -2xy, \quad y(0)=1, \quad h=0.2
+                \]
+            </div>
+            <p class="text-sm text-slate-600">We compute \(y(0.2)\) using one Heun step.</p>
+        </div>
+
+        <div class="step-detail">
+            <h3>📌 Step 1 — Problem setup</h3>
+            <p>\(f(x,y) = -2xy\), initial: \(x_0 = 0\), \(y_0 = 1\), step \(h = 0.2\). Then \(x_1 = 0.2\).</p>
+        </div>
+
+        <div class="step-detail">
+            <h3>📌 Step 2 — First slope at \((x_0, y_0)\)</h3>
+            <div class="formula">
+                \[
+                f(0, 1) = -2 \cdot 0 \cdot 1 = 0
+                \]
+            </div>
+            <p class="text-muted">Derivative is zero initially; Euler predictor will initially remain flat.</p>
+        </div>
+
+        <div class="step-detail">
+            <h3>📌 Step 3 — Predictor (Euler guess)</h3>
+            <div class="formula">
+                \[
+                \tilde y_{1} = y_0 + h \cdot f(x_0, y_0) = 1 + 0.2 \times 0 = 1
+                \]
+            </div>
+            <p>Predicted value: \(\tilde y_{1} = 1.0\) at \(x_1 = 0.2\).</p>
+        </div>
+
+        <div class="step-detail">
+            <h3>📌 Step 4 — Second slope at predicted endpoint</h3>
+            <p>\((x_1, \tilde y_1) = (0.2, 1.0)\)</p>
+            <div class="formula">
+                \[
+                f(0.2, 1.0) = -2 \times 0.2 \times 1.0 = -0.4
+                \]
+            </div>
+            <p class="text-muted">Slope becomes negative due to increase in \(x\).</p>
+        </div>
+
+        <div class="step-detail">
+            <h3>📌 Step 5 — Heun's corrector (average slope)</h3>
+            <div class="formula">
+                \[
+                y_{1} = y_0 + \frac{h}{2}\big[ f(x_0, y_0) + f(x_1, \tilde y_1) \big]
+                \]
+            </div>
+            <p>Plug numbers:</p>
+            <div class="formula">
+                \[
+                y_{1} = 1 + \frac{0.2}{2} \big[ 0 + (-0.4) \big]
+                = 1 + 0.1 \times (-0.4)
+                = 1 - 0.04
+                = 0.96
+                \]
+            </div>
+        </div>
+
+        <div class="result-box">
+            ✅ <strong>Heun's approximation:</strong>  
+            \[
+            y(0.2) \approx 0.96
+            \]
+            <p class="text-xs mt-1">Exact solution: \(y(x) = e^{-x^2}\) ⇒ \(y(0.2)=e^{-0.04}\approx 0.960789\). Error ≈ \(-0.000789\) (very small!).</p>
+        </div>
+
+        <div class="insight-box">
+            💡 <strong>Insight:</strong> With \(h=0.2\), plain Euler would give \(y_1 = 1\) (no change, error ~0.039). Heun's corrector uses the negative slope at the end, dropping the value to 0.96, closely matching the exact solution.
+        </div>
+    </section>
+
+    <!-- CALCULATOR BUTTON (interactive) -->
+    <div class="center">
+        <a href="/calculator" class="btn">
+            🧮 Open Interactive Calculator
+        </a>
+        <p class="text-xs text-gray-400 mt-2">Explore more ODEs with step-by-step Heun solver</p>
+    </div>
+</div>
+
+<script>
+    // Initialize Lucide icons (replaces <i> with SVG)
+    lucide.createIcons();
+
+    // Function to toggle between worked examples + re-render MathJax
+    function showExample(exampleNumber) {
+        const ex1 = document.getElementById('example1');
+        const ex2 = document.getElementById('example2');
+        
+        // Hide both examples
+        ex1.classList.add('hidden');
+        ex2.classList.add('hidden');
+        
+        // Show selected example
+        if (exampleNumber === 1) {
+            ex1.classList.remove('hidden');
+        } else if (exampleNumber === 2) {
+            ex2.classList.remove('hidden');
+        }
+        
+        // Trigger MathJax to re-render any new LaTeX inside dynamically shown content
+        if (window.MathJax) {
+            MathJax.typesetPromise().catch(err => console.log('MathJax error:', err));
+        }
+        
+        // Re-run lucide to ensure icons inside newly visible section render properly
+        setTimeout(() => {
+            lucide.createIcons();
+        }, 60);
+    }
+
+    // On page load, ensure MathJax processes all initial formulas and icons are ready.
+    window.addEventListener('load', () => {
+        if (window.MathJax) {
+            MathJax.typesetPromise();
+        }
+        lucide.createIcons();
+        console.log("Heun's method loaded — original color design with step-by-step solutions");
+    });
+</script>
+
+</body>
+</html>

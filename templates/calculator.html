@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heun's Method · Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { background: #f8fafc; font-family: 'Crimson Pro', Georgia, serif; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; }
+        .header { text-align: center; margin-bottom: 2rem; }
+        .header h1 { font-size: 2.8rem; font-weight: 700; background: linear-gradient(135deg, #1e293b, #2d3a5e); background-clip: text; -webkit-background-clip: text; color: transparent; }
+        .header p { font-size: 1.2rem; color: #475569; border-bottom: 2px solid #e2e8f0; display: inline-block; }
+        .card { background: #fff; border-radius: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 1.8rem 2rem; margin-bottom: 2rem; border: 1px solid #eef2ff; }
+        h2 { display: flex; align-items: center; gap: 0.6rem; font-size: 1.6rem; font-weight: 600; color: #0f172a; margin-bottom: 1.2rem; }
+        h2 i { color: #3b82f6; width: 1.6rem; height: 1.6rem; }
+        .input-group { margin-bottom: 1.2rem; }
+        .input-group label { display: block; font-weight: 600; color: #1e293b; margin-bottom: 0.4rem; font-family: 'JetBrains Mono', monospace; }
+        .input-group input { width: 100%; padding: 0.7rem 1rem; border: 2px solid #e2e8f0; border-radius: 1rem; font-family: 'JetBrains Mono', monospace; }
+        .input-group input:focus { outline: none; border-color: #3b82f6; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .btn { display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(100deg, #0f172a, #1e293b); padding: 0.75rem 1.8rem; border-radius: 3rem; font-weight: 600; color: white; border: none; cursor: pointer; font-family: 'JetBrains Mono', monospace; }
+        .btn-secondary { background: #475569; }
+        .btn-secondary:hover { background: #5a6a7e; transform: translateY(-2px); }
+        .btn:hover { transform: translateY(-2px); }
+        .hidden { display: none; }
+        .error { background: #fee2e2; color: #991b1b; padding: 0.75rem; border-radius: 1rem; margin-top: 1rem; }
+        .table-wrapper { overflow-x: auto; margin: 1rem 0; }
+        table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+        th, td { border: 1px solid #e2e8f0; padding: 0.7rem; text-align: center; }
+        th { background: #f1f5f9; }
+        .result-box { background: #eef2ff; border-radius: 1rem; padding: 1rem; margin-top: 1.5rem; text-align: center; font-weight: 600; color: #075985; }
+        .step-card { background: #f8fafc; border-left: 4px solid #3b82f6; padding: 1rem 1.2rem; border-radius: 1rem; margin-bottom: 1rem; }
+        .step-card p { margin: 0.4rem 0; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
+        .flex-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header class="header">
+        <h1>Heun's Method</h1>
+        <p>Interactive Calculator · Step-by-Step Solver</p>
+    </header>
+
+    <section class="card">
+        <h2><i data-lucide="calculator"></i> Problem Input</h2>
+        <div class="input-group">
+            <label>dy/dx = f(x, y)</label>
+            <input type="text" id="ode-input" value="x+y" placeholder="e.g., x+y, sin(x)*y">
+            <p class="text-xs text-gray-500 mt-1">Allowed: x, y, +, -, *, /, ^, sin, cos, tan, exp, log, sqrt, abs</p>
+        </div>
+        <div class="grid">
+            <div class="input-group"><label>x₀</label><input type="number" id="x0-input" value="0" step="any"></div>
+            <div class="input-group"><label>y₀</label><input type="number" id="y0-input" value="1" step="any"></div>
+            <div class="input-group"><label>Step Size (h)</label><input type="number" id="step-input" value="0.1" step="0.01"></div>
+            <div class="input-group"><label>Number of Steps</label><input type="number" id="steps-input" value="3" min="1" max="50"></div>
+        </div>
+        <div class="flex-btns">
+            <button id="calc-btn" class="btn"><i data-lucide="play"></i> Compute Solution</button>
+            <a href="/" class="btn btn-secondary"><i data-lucide="home"></i> Back to Home</a>
+        </div>
+        <div id="error-msg" class="error hidden"></div>
+    </section>
+
+    <section id="results-container" class="card hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <h2><i data-lucide="file-text"></i> Numerical Solution</h2>
+            <button id="back-btn" class="btn btn-secondary" style="background:#475569;"><i data-lucide="arrow-left"></i> Hide Results</button>
+        </div>
+        <div class="table-wrapper">
+            <table><thead><tr><th>Step</th><th>x</th><th>y (current)</th><th>f(x,y)</th><th>Predictor ŷ</th><th>Corrected y_new</th></tr></thead><tbody id="results-body"></tbody></table>
+        </div>
+        <h3><i data-lucide="list-checks"></i> Complete Step-by-Step Derivation</h3>
+        <div id="steps-details"></div>
+        <div class="result-box"><strong id="final-result"></strong></div>
+    </section>
+</div>
+
+<script>
+    lucide.createIcons();
+    function fmt(n, d=6) { return Number(n).toFixed(d); }
+    function evalExpr(expr, x, y) {
+        let p = expr.replace(/\^/g, '**').replace(/sin/g,'Math.sin').replace(/cos/g,'Math.cos').replace(/tan/g,'Math.tan').replace(/exp/g,'Math.exp').replace(/log/g,'Math.log').replace(/sqrt/g,'Math.sqrt').replace(/abs/g,'Math.abs');
+        p = p.replace(/x/g,`(${x})`).replace(/y/g,`(${y})`);
+        try { let v = new Function(`return (${p})`)(); return isFinite(v) ? v : null; } catch(e) { return null; }
+    }
+    function heunStep(f, x, y, h) {
+        let f1 = f(x,y); if(f1===null) return null;
+        let pred = y + h*f1;
+        let f2 = f(x+h, pred); if(f2===null) return null;
+        let corr = y + (h/2)*(f1+f2);
+        return { f1, predictor: pred, f2, corrected: corr };
+    }
+    document.getElementById('calc-btn').addEventListener('click',()=>{
+        let ode = document.getElementById('ode-input').value.trim();
+        let x0=parseFloat(document.getElementById('x0-input').value), y0=parseFloat(document.getElementById('y0-input').value), h=parseFloat(document.getElementById('step-input').value), steps=parseInt(document.getElementById('steps-input').value);
+        if(isNaN(x0)||isNaN(y0)||isNaN(h)||isNaN(steps)||steps<1||h<=0){
+            document.getElementById('error-msg').textContent='Invalid inputs'; document.getElementById('error-msg').classList.remove('hidden'); return;
+        }
+        let f = (xv,yv)=>evalExpr(ode, xv, yv);
+        if(f(x0,y0)===null){ document.getElementById('error-msg').textContent='Invalid expression'; document.getElementById('error-msg').classList.remove('hidden'); return; }
+        document.getElementById('error-msg').classList.add('hidden');
+        let x=x0, y=y0, tbody=document.getElementById('results-body'), detailsDiv=document.getElementById('steps-details');
+        tbody.innerHTML=''; detailsDiv.innerHTML=''; let stepData=[];
+        for(let i=0;i<steps;i++){
+            let res=heunStep(f,x,y,h);
+            if(!res){ document.getElementById('error-msg').textContent=`Error at step ${i+1}`; document.getElementById('error-msg').classList.remove('hidden'); return; }
+            stepData.push({step:i+1, x_old:x, y_old:y, f1:res.f1, predictor:res.predictor, f2:res.f2, corrected:res.corrected, x_new:x+h});
+            y=res.corrected; x+=h;
+        }
+        for(let d of stepData){
+            let row=document.createElement('tr');
+            row.innerHTML=`<td>${d.step}</td><td>${fmt(d.x_old)}</td><td>${fmt(d.y_old)}</td><td>${fmt(d.f1)}</td><td>${fmt(d.predictor)}</td><td>${fmt(d.corrected)}</td>`;
+            tbody.appendChild(row);
+            let card=document.createElement('div'); card.className='step-card';
+            card.innerHTML=`<h4>📐 Step ${d.step}: x = ${fmt(d.x_old)} → ${fmt(d.x_new)}</h4>
+                <p><strong>1. Slope at start:</strong> f(${fmt(d.x_old)}, ${fmt(d.y_old)}) = ${fmt(d.f1)}</p>
+                <p><strong>2. Predictor:</strong> ŷ = ${fmt(d.y_old)} + ${h}×(${fmt(d.f1)}) = ${fmt(d.predictor)}</p>
+                <p><strong>3. Slope at predicted point:</strong> f(${fmt(d.x_new)}, ${fmt(d.predictor)}) = ${fmt(d.f2)}</p>
+                <p><strong>4. Corrector:</strong> y_new = ${fmt(d.y_old)} + (${h}/2)×[${fmt(d.f1)} + (${fmt(d.f2)})] = ${fmt(d.corrected)}</p>
+                <hr><p>✅ y(${fmt(d.x_new)}) ≈ ${fmt(d.corrected)}</p>`;
+            detailsDiv.appendChild(card);
+        }
+        let last=stepData[stepData.length-1];
+        document.getElementById('final-result').innerHTML=`🎯 Final: y(${fmt(last.x_new)}) ≈ ${fmt(last.corrected,10)}`;
+        document.getElementById('results-container').classList.remove('hidden');
+        if(window.MathJax) MathJax.typesetPromise();
+        setTimeout(()=>lucide.createIcons(),100);
+        document.getElementById('results-container').scrollIntoView({behavior:'smooth'});
+    });
+    document.getElementById('back-btn').addEventListener('click',()=>{ document.getElementById('results-container').classList.add('hidden'); });
+    setInterval(()=>lucide.createIcons(),500);
+</script>
+</body>
+</html>
